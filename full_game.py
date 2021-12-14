@@ -2,6 +2,7 @@
 """
 Created on Sat Nov 23 13:53:35 2020
 @authors: Joel, Hannah, Ben
+@artwork: Po Wing Chu
 """
  
 # import modules
@@ -67,6 +68,8 @@ background_image14 = pygame.transform.smoothscale(background_image14, (160,160))
 background_image15 = pygame.image.load(os.path.join(folder,'peng_luck.png')).convert_alpha()
 background_image15 = pygame.transform.smoothscale(background_image15, (1400,1400))
 
+luck = pygame.image.load(os.path.join(folder,'peng_luck.png')).convert_alpha()
+luck = pygame.transform.smoothscale(luck, (200,200))
 
 # load sound and music
 # https://freesound.org/people/complex_waveform/sounds/213148/
@@ -147,6 +150,16 @@ def get_pos(x):
     else:
         return str(x+1)+"th"    
 
+def rotate_image(surface, angle):
+    """
+    Source: https://www.youtube.com/watch?v=eGsMMpAglIg
+    """
+    # -angle for clockwise rotation
+    rotated_surface = pygame.transform.rotozoom(surface, -angle, 1)
+    rotated_rect = rotated_surface.get_rect(center=(WIDTH//2 , HEIGHT//2))
+    
+    return rotated_surface, rotated_rect
+
 def main():
     """
     Run this function to start the menu screen.
@@ -167,6 +180,7 @@ def main():
     music_playing = False
     window = 'intro'    
     active = True
+    angle = 0
 
     # load scoreboard if file exists
     scoreboard = load_highscores()
@@ -248,123 +262,128 @@ def main():
                     if return_button.handling_events(event) :
                         window = "main_menu"
             
-            # draws
-            screen.fill(fg_color)
-            
-             # intro layout
-            if window == "intro" :
-                # text in SpaceObsessed.ttf source: https://en.m.fontke.com/font/28537714/
-                static_text("Press any key to start!", 40, WIDTH, HEIGHT, center=True, screen=screen, font="SpaceObsessed.ttf")                
-
-            # main menu layout
-            elif window == 'main_menu':
-                # show image
-                screen.blit(background_image15, (920, 0))
-                # draw buttons
-                start_button.draw(screen)
-                highscore_button.draw(screen)
-                tutorial_button.draw(screen)
-                credits_button.draw(screen)
-                quit_button.draw(screen)
-                # text in Snow Blue.ttf source: https://www.1001fonts.com/snow-blue-font.html
-                static_text("Pinguin", 120, WIDTH-1250, HEIGHT-750, font="SNOW BLUE.ttf", center=False, screen=screen)
-
-            # highscores layout
-            elif window == 'highscores':
-                # show image
-                screen.blit(background_image2, (WIDTH/1.5, 330))
-                screen.blit(background_image4, (200, 480))
-
-                # draw button
-                return_button.draw(screen)
-                # text
-                static_text("Highscores", 80, WIDTH, HEIGHT, y=-350, center=True, font="SNOW BLUE.ttf", screen=screen)
-                # show highscores
-                try : # check if scoreboard exists and how many entries there are
-                    if scoreboard:
-                        for i in range(len(scoreboard)):
-                            static_text(f"{get_pos(i)} {scoreboard[i][0]} {scoreboard[i][1]}pts", 35, WIDTH, HEIGHT-(350-(i*125)), font="SpaceObsessed.ttf", bold=True, color=get_colour(i), center=True, screen=screen)
-                except (TypeError, NameError):
-                    pass # if scoreboard is empty, do nothing
-                    
-            # tutorial layout   
-            elif window == 'tutorial':
-                # show images
-                screen.blit(background_image3, (150,200)) # pengiun
-                screen.blit(background_image8, (700,400)) # arrow
-                screen.blit(background_image9, (1075,335)) # homes - might need change
-                # draw button
-                return_button.draw(screen)
-                next_button.draw(screen)
-                # text
-                static_text("Destination", 30, WIDTH+620, HEIGHT-340, screen=screen, font="SpaceObsessed.ttf",center=True, color="red1")
-                static_text("Reach all 5 destinations to win!", 30, WIDTH, HEIGHT, y=-200, screen=screen, font= "SpaceObsessed.ttf",center=True)
-                static_text("Tutorial", 80, WIDTH, HEIGHT, y=-350, font="SNOW BLUE.ttf", center=True, screen=screen)
-                 
-            elif window == 'tutorial2':
-                # show images
-                screen.blit(background_image10, (610, 360)) # polar bear
-                screen.blit(background_image11, (950, 450)) # floating ice
-                # draw button
-                next_button.draw(screen)
-                back_button.draw(screen)
-                # text
-                static_text("Tutorial", 80, WIDTH, HEIGHT, y=-350, center=True, font="SNOW BLUE.ttf", screen=screen)
-                static_text("But be careful!", 30, WIDTH, HEIGHT, y=-200, screen=screen, font="SpaceObsessed.ttf",center=True, color='red')
-                static_text("Avoid polar bears", 30, WIDTH-460, HEIGHT , y=250, screen=screen, font="SpaceObsessed.ttf",center=True)
-                static_text("Don't fall into the water", 30, WIDTH+400, HEIGHT, y=250, screen=screen, font= "SpaceObsessed.ttf",center=True)
-           
-            elif window=='tutorial3':
-                # show images
-                #screen.blit(background_image4, (1500, 500)) # penguin
-                screen.blit(background_fish, (880, 460)) # fish
-                # draw button
-                back_button.draw(screen)
-                next_button.draw(screen)
-                # text
-                static_text("Tutorial", 80, WIDTH, HEIGHT,y=-350, center=True, font="SNOW BLUE.ttf", screen=screen)
-               
-                static_text("How it works", 30, WIDTH, HEIGHT, y=-200, screen=screen, font="SpaceObsessed.ttf",center=True,color="yellow")
-                static_text("There are 3 levels", 25, WIDTH, HEIGHT, y=-150, screen=screen, font= "SpaceObsessed.ttf",center=True)
-                static_text("You have 75 seconds for the 1st level", 25, WIDTH, HEIGHT, y=-125, screen=screen, font="SpaceObsessed.ttf",center=True)
-                static_text("And 15 seconds less for each level that follows", 25, WIDTH, HEIGHT, y=-100, screen=screen, font="SpaceObsessed.ttf",center=True)
-                static_text("Each step forward gives you 10 pts", 25, WIDTH, HEIGHT, y=-75, screen=screen, font="SpaceObsessed.ttf",center=True)
-                static_text("Every time you reach a home you earn 100 pts", 25, WIDTH, HEIGHT, y=-50, screen=screen, font="SpaceObsessed.ttf",center=True)
-                static_text("Collect            to gain 25 pts", 25, WIDTH, HEIGHT, y=-25, screen=screen, font="SpaceObsessed.ttf",center=True)
-
-                static_text("Once you complete a level", 30, WIDTH, HEIGHT, y=50, screen=screen, font="SpaceObsessed.ttf",center=True,color="yellow")
-                static_text("you receive 1000 pts", 25, WIDTH, HEIGHT, y=100, screen=screen, font="SpaceObsessed.ttf",center=True)
-                static_text("plus an extra 5 pts for each second remaining", 25, WIDTH, HEIGHT, y=125, screen=screen, font="SpaceObsessed.ttf",center=True)               
-                static_text("and 50 pts per life remaining", 25, WIDTH, HEIGHT, y=150, screen=screen, font="SpaceObsessed.ttf",center=True)
-
-            elif window == 'tutorial4':
-                # show images
-                screen.blit(pygame.transform.rotate(background_image, 90), (WIDTH-500, 225)) # penguin
-                screen.blit(background_image6, (580, 200)) # wasd controls
-
-                # draw button
-                back_button.draw(screen)
-                # text
-                static_text("Tutorial", 80, WIDTH, HEIGHT, y=-350, center=True, font="SNOW BLUE.ttf", screen=screen)
-                static_text("Use the following keys to move around", 30, WIDTH, HEIGHT, y=-200, screen=screen, font="SpaceObsessed.ttf", center=True)
-            
-            # credits layout
-            else: 
-                if window == "credits" :
-                    # show image
-                    screen.blit(background_image5, (850, 540))
-                    # draw button
-                    return_button.draw(screen)
-                    # text
-                    static_text("Made by", 40, WIDTH, HEIGHT, y=-225,color='cadetblue1', center=True, screen=screen, font="SpaceObsessed.ttf")
-                    static_text("Benjamin Pickering", 40, WIDTH, HEIGHT-300, y=0, font="SpaceObsessed.ttf", center=True, screen=screen)
-                    static_text("Hannah Smith", 40, WIDTH, HEIGHT-175, y=0, font="SpaceObsessed.ttf", center=True, screen=screen)
-                    static_text("Joel Ligma", 40, WIDTH, HEIGHT-50, y=0, font="SpaceObsessed.ttf", center=True, screen=screen)
-                    static_text("Po Wing Chu", 40, WIDTH, HEIGHT+75, y=0, font="SpaceObsessed.ttf", center=True, screen=screen)
-                    static_text("Credits", 80, WIDTH, HEIGHT, y=-350, font="SNOW BLUE.ttf", center=True, screen=screen)
+        # draws
+        screen.fill(fg_color)
         
+            # intro layout
+        if window == "intro" :
+            # text in SpaceObsessed.ttf source: https://en.m.fontke.com/font/28537714/
+            static_text("Press any key to start!", 40, WIDTH, HEIGHT, y=200, center=True, screen=screen, font="SpaceObsessed.ttf")                
+            
+            # to rotate the image
+            angle += 1
+            peng_rotated, peng_rotated_rect = rotate_image(luck, angle)
+            screen.blit(peng_rotated, peng_rotated_rect)
+
+        # main menu layout
+        elif window == 'main_menu':
+            # show image
+            screen.blit(background_image15, (920, 0))
+            # draw buttons
+            start_button.draw(screen)
+            highscore_button.draw(screen)
+            tutorial_button.draw(screen)
+            credits_button.draw(screen)
+            quit_button.draw(screen)
+            # text in Snow Blue.ttf source: https://www.1001fonts.com/snow-blue-font.html
+            static_text("Pinguin", 120, WIDTH-1250, HEIGHT-750, font="SNOW BLUE.ttf", center=False, screen=screen)
+
+        # highscores layout
+        elif window == 'highscores':
+            # show image
+            screen.blit(background_image2, (WIDTH/1.5, 330))
+            screen.blit(background_image4, (200, 480))
+
+            # draw button
+            return_button.draw(screen)
+            # text
+            static_text("Highscores", 80, WIDTH, HEIGHT, y=-350, center=True, font="SNOW BLUE.ttf", screen=screen)
+            # show highscores
+            try : # check if scoreboard exists and how many entries there are
+                if scoreboard:
+                    for i in range(len(scoreboard)):
+                        static_text(f"{get_pos(i)} {scoreboard[i][0]} {scoreboard[i][1]}pts", 35, WIDTH, HEIGHT-(350-(i*125)), font="SpaceObsessed.ttf", bold=True, color=get_colour(i), center=True, screen=screen)
+            except (TypeError, NameError):
+                pass # if scoreboard is empty, do nothing
+                
+        # tutorial layout   
+        elif window == 'tutorial':
+            # show images
+            screen.blit(background_image3, (150,200)) # pengiun
+            screen.blit(background_image8, (700,400)) # arrow
+            screen.blit(background_image9, (1075,335)) # homes - might need change
+            # draw button
+            return_button.draw(screen)
+            next_button.draw(screen)
+            # text
+            static_text("Destination", 30, WIDTH+620, HEIGHT-340, screen=screen, font="SpaceObsessed.ttf",center=True, color="red1")
+            static_text("Reach all 5 destinations to win!", 30, WIDTH, HEIGHT, y=-200, screen=screen, font= "SpaceObsessed.ttf",center=True)
+            static_text("Tutorial", 80, WIDTH, HEIGHT, y=-350, font="SNOW BLUE.ttf", center=True, screen=screen)
+                
+        elif window == 'tutorial2':
+            # show images
+            screen.blit(background_image10, (610, 360)) # polar bear
+            screen.blit(background_image11, (950, 450)) # floating ice
+            # draw button
+            next_button.draw(screen)
+            back_button.draw(screen)
+            # text
+            static_text("Tutorial", 80, WIDTH, HEIGHT, y=-350, center=True, font="SNOW BLUE.ttf", screen=screen)
+            static_text("But be careful!", 30, WIDTH, HEIGHT, y=-200, screen=screen, font="SpaceObsessed.ttf",center=True, color='red')
+            static_text("Avoid polar bears", 30, WIDTH-460, HEIGHT , y=250, screen=screen, font="SpaceObsessed.ttf",center=True)
+            static_text("Don't fall into the water", 30, WIDTH+400, HEIGHT, y=250, screen=screen, font= "SpaceObsessed.ttf",center=True)
+        
+        elif window=='tutorial3':
+            # show images
+            #screen.blit(background_image4, (1500, 500)) # penguin
+            screen.blit(background_fish, (880, 460)) # fish
+            # draw button
+            back_button.draw(screen)
+            next_button.draw(screen)
+            # text
+            static_text("Tutorial", 80, WIDTH, HEIGHT,y=-350, center=True, font="SNOW BLUE.ttf", screen=screen)
+            
+            static_text("How it works", 30, WIDTH, HEIGHT, y=-200, screen=screen, font="SpaceObsessed.ttf",center=True,color="yellow")
+            static_text("There are 3 levels", 25, WIDTH, HEIGHT, y=-150, screen=screen, font= "SpaceObsessed.ttf",center=True)
+            static_text("You have 75 seconds for the 1st level", 25, WIDTH, HEIGHT, y=-125, screen=screen, font="SpaceObsessed.ttf",center=True)
+            static_text("And 15 seconds less for each level that follows", 25, WIDTH, HEIGHT, y=-100, screen=screen, font="SpaceObsessed.ttf",center=True)
+            static_text("Each step forward gives you 10 pts", 25, WIDTH, HEIGHT, y=-75, screen=screen, font="SpaceObsessed.ttf",center=True)
+            static_text("Every time you reach a home you earn 100 pts", 25, WIDTH, HEIGHT, y=-50, screen=screen, font="SpaceObsessed.ttf",center=True)
+            static_text("Collect            to gain 25 pts", 25, WIDTH, HEIGHT, y=-25, screen=screen, font="SpaceObsessed.ttf",center=True)
+
+            static_text("Once you complete a level", 30, WIDTH, HEIGHT, y=50, screen=screen, font="SpaceObsessed.ttf",center=True,color="yellow")
+            static_text("you receive 1000 pts", 25, WIDTH, HEIGHT, y=100, screen=screen, font="SpaceObsessed.ttf",center=True)
+            static_text("plus an extra 5 pts for each second remaining", 25, WIDTH, HEIGHT, y=125, screen=screen, font="SpaceObsessed.ttf",center=True)               
+            static_text("and 50 pts per life remaining", 25, WIDTH, HEIGHT, y=150, screen=screen, font="SpaceObsessed.ttf",center=True)
+
+        elif window == 'tutorial4':
+            # show images
+            screen.blit(pygame.transform.rotate(background_image, 90), (WIDTH-500, 225)) # penguin
+            screen.blit(background_image6, (580, 200)) # wasd controls
+
+            # draw button
+            back_button.draw(screen)
+            # text
+            static_text("Tutorial", 80, WIDTH, HEIGHT, y=-350, center=True, font="SNOW BLUE.ttf", screen=screen)
+            static_text("Use the following keys to move around", 30, WIDTH, HEIGHT, y=-200, screen=screen, font="SpaceObsessed.ttf", center=True)
+        
+        # credits layout
+        else: 
+            if window == "credits" :
+                # show image
+                screen.blit(background_image5, (850, 520))
+                # draw button
+                return_button.draw(screen)
+                # text
+                static_text("Made by", 30, WIDTH, HEIGHT, y=-225,color='cadetblue1', center=True, screen=screen, font="SpaceObsessed.ttf")
+                static_text("Benjamin Pickering", 30, WIDTH, HEIGHT-300, y=0, font="SpaceObsessed.ttf", center=True, screen=screen)
+                static_text("Hannah Smith", 30, WIDTH, HEIGHT-200, y=0, font="SpaceObsessed.ttf", center=True, screen=screen)
+                static_text("Joel Ligma", 30, WIDTH, HEIGHT-100, y=0, font="SpaceObsessed.ttf", center=True, screen=screen)
+                static_text("Po Wing Chu", 30, WIDTH, HEIGHT+0, y=0, font="SpaceObsessed.ttf", center=True, screen=screen)
+                static_text("Credits", 80, WIDTH, HEIGHT, y=-350, font="SNOW BLUE.ttf", center=True, screen=screen)
+    
             # update display
-            pygame.display.flip()
+        pygame.display.flip()
         # Framerate
         clock.tick(framerate)
 
@@ -411,7 +430,7 @@ def save_highscores(name, score=0) :
     pickle.dump(scoreboard,file)
     file.close()    
 
-def load_highscores() :  
+def load_highscores():  
     """
     This function returns the highscores as a list of lists.
     """
@@ -421,7 +440,7 @@ def load_highscores() :
         scoreboard = pickle.load(file)
         file.close()
         return scoreboard
-    except FileNotFoundError :
+    except FileNotFoundError:
         pass
 
 
@@ -496,6 +515,7 @@ skull_images = []
 
 # splash sound found as "Splash, Jumping, A.wav" by InspectorJ (www.jshaw.co.uk) of Freesound.org”
 splash = pygame.mixer.Sound(os.path.join(folder,'Falling into water credit needed.wav'))
+
 # https://freesound.org/people/josepharaoh99/sounds/383240/#
 hitwall = pygame.mixer.Sound(os.path.join(folder,'Jumping against wall.wav'))
 
@@ -531,7 +551,7 @@ background_image7 = pygame.image.load(os.path.join(folder,"penguin2.png")).conve
 background_image13 = pygame.image.load(os.path.join(folder,'penguin_home.png')).convert_alpha()
 background_image13 = pygame.transform.smoothscale(background_image13, (int(1.35*LANE), LANE))
 
-# # https://summerwatersports.com/abstract-winter-snow-background/ 
+# https://summerwatersports.com/abstract-winter-snow-background/ 
 snow = pygame.image.load(os.path.join(folder, 'Snow.jpg')).convert_alpha()
 snow = pygame.transform.scale(snow, (WIDTH, 4*LANE))
 
@@ -958,7 +978,7 @@ def main_gameplay():
         
         pygame.display.flip()
 
-        # add beginnging LEVEL 1 text
+        # add LEVEL 1 text to start of the game
         if intro:
             static_text(f"Level {LEVEL+1}", 240, WIDTH, HEIGHT, color="black",screen=screen, font="SpaceObsessed.ttf", center=True)
             next_level.set_volume(0.1)

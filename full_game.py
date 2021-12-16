@@ -17,6 +17,7 @@ mixer.init()
 # global variables
 WIDTH = 1920 
 HEIGHT = 1020
+LANE = int(HEIGHT/13)
 
 # set caption for game window
 pygame.display.set_caption('Pinguin Game')
@@ -68,8 +69,13 @@ background_image14 = pygame.transform.smoothscale(background_image14, (160,160))
 background_image15 = pygame.image.load(os.path.join(folder,'peng_luck.png')).convert_alpha()
 background_image15 = pygame.transform.smoothscale(background_image15, (1400,1400))
 
-luck = pygame.image.load(os.path.join(folder,'peng_luck.png')).convert_alpha()
-luck = pygame.transform.smoothscale(luck, (200,200))
+intro_peng = pygame.image.load(os.path.join(folder,'intro_peng.png')).convert_alpha()
+intro_peng = pygame.transform.smoothscale(intro_peng, (300,300))
+
+glacier = pygame.image.load(os.path.join(folder, "glacier.png")).convert_alpha()
+glacier = pygame.transform.smoothscale(glacier, (WIDTH, LANE))
+
+
 
 # load sound and music
 # https://freesound.org/people/complex_waveform/sounds/213148/
@@ -81,7 +87,7 @@ mixer.music.set_volume(0.05)
 
 class Menu_button() :
 
-    def __init__(self, text, width, height, bg_color, fg_color, size, y=0,x=0) :
+    def __init__(self, text, width, height, bg_color, fg_color, size, y=0,x=0):
         """ 
         Text, size, gf_color and bg_color are the same as in text_surface().
         width = button width 
@@ -101,25 +107,25 @@ class Menu_button() :
         self.hovered = False
 
     # class methods
-    def draw(self, surface) :
+    def draw(self, surface):
         """
         Updates the surface depending on mouse movement.
         """
-        if self.hovered :
+        if self.hovered:
              surface.blit(self.images[1], self.rects[1])
-        else :
+        else:
             surface.blit(self.images[0], self.rects[0])
      
-    def handling_events(self, event) :
+    def handling_events(self, event):
         """
         Interaction with buttons.
         """
-        if event.type == pygame.MOUSEMOTION :
+        if event.type == pygame.MOUSEMOTION:
             # detect if mouse over button
             self.hovered = self.rects[1].collidepoint(event.pos)
         # in case button is clicked...
-        elif event.type == pygame.MOUSEBUTTONDOWN :
-            if self.hovered :
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if self.hovered:
                 # play sound when click registered
                 click_sound.play()
                 return True
@@ -171,7 +177,8 @@ def main():
     highscore_button = Menu_button("Highscores", WIDTH, HEIGHT, bg_color, fg_color, 30, 50)
     tutorial_button = Menu_button("Tutorial", WIDTH, HEIGHT, bg_color, fg_color, 30, 100)
     credits_button = Menu_button("Credits", WIDTH, HEIGHT, bg_color, fg_color, 30, 150)
-    quit_button = Menu_button("Quit", WIDTH, HEIGHT, bg_color, fg_color, 30, 200)
+    settings_button = Menu_button("Settings", WIDTH, HEIGHT, bg_color, fg_color, 30, 200)
+    quit_button = Menu_button("Quit", WIDTH, HEIGHT, bg_color, fg_color, 30, 250)
     return_button = Menu_button("Return to Main Menu", WIDTH, HEIGHT, bg_color, fg_color, 30,200)
     next_button = Menu_button("Next", WIDTH, HEIGHT, bg_color, fg_color, 30, x=450)
     back_button = Menu_button("Back", WIDTH, HEIGHT, bg_color, fg_color, 30, x=-450, y=-5) 
@@ -181,32 +188,36 @@ def main():
     window = 'intro'    
     active = True
     angle = 0
+    already_open = False
+    menu_open_time = 0
 
     # load scoreboard if file exists
     scoreboard = load_highscores()
     # main main_menu loop
-    while active :
-        for event in pygame.event.get() :
+    while active:
+        for event in pygame.event.get():
             # handling user input
-            if event.type == pygame.KEYDOWN :   
-                if window == "intro" :
+            if event.type == pygame.KEYDOWN:   
+                if window == "intro":
                     window = "main_menu" 
-                elif event.key == pygame.K_ESCAPE :
-                    if window != "main_menu" :
+                elif event.key == pygame.K_ESCAPE:
+                    if window != "main_menu":
                         window = "main_menu"
                     else: 
                         active = False
-            
             # end game by closing the window
-            elif event.type == pygame.QUIT :
+            elif event.type == pygame.QUIT:
                     active = False
                                 
             # handling events in main menu window
-            elif window == "main_menu" :
-                if not music_playing :
+            elif window=="main_menu":
+                if not music_playing:
                     mixer.music.play(-1) # infinite loop 
                     music_playing = True
-                if start_button.handling_events(event) :
+                # handle start game events
+                if start_button.handling_events(event):
+                    # to stop idle timer while in game
+                    already_open = False
                     # start the game
                     active = main_gameplay()
                     # restart the music after returning to the menu
@@ -214,69 +225,77 @@ def main():
                         scoreboard = active
                         active = True
                     music_playing = False
-                
-                elif highscore_button.handling_events(event) :
+                elif highscore_button.handling_events(event):
                     window = 'highscores'
-                elif tutorial_button.handling_events(event) :
+                    already_open = False
+                elif tutorial_button.handling_events(event):
                     window = 'tutorial'
-                elif credits_button.handling_events(event) :
+                    already_open = False
+                elif credits_button.handling_events(event):
                     window = 'credits'
+                    already_open = False
+                elif settings_button.handling_events(event):
+                    window = 'settings'
+                    already_open = False
                 else :
-                    if quit_button.handling_events(event) :
+                    if quit_button.handling_events(event):
                         active = False
                     
             # handling events in highscores window
-            elif window == "highscores" :                                        
-                if return_button.handling_events(event) :
+            elif window == "highscores":                                        
+                if return_button.handling_events(event):
                     window = "main_menu"
                     
             # handling events in tutorial window
-            elif window == "tutorial" :
-                if return_button.handling_events(event) :
+            elif window == "tutorial":
+                if return_button.handling_events(event):
                     window = "main_menu"
-                elif next_button.handling_events(event) :
+                elif next_button.handling_events(event):
                     window = "tutorial2"
                     
             # handling events in tutorial2 window
-            elif window == "tutorial2" :
-                if back_button.handling_events(event) :
+            elif window == "tutorial2":
+                if back_button.handling_events(event):
                     window = "tutorial"
-                elif next_button.handling_events(event) :
+                elif next_button.handling_events(event):
                     window = "tutorial3"
                     
             # handling events in tutorial3 window
-            elif window == "tutorial3" :
-                if back_button.handling_events(event) :
+            elif window == "tutorial3":
+                if back_button.handling_events(event):
                     window = "tutorial2"
-                elif next_button.handling_events(event) :
+                elif next_button.handling_events(event):
                     window = "tutorial4"
             
             # handling events in tutorial4 window
-            elif window == "tutorial4" :
-                if back_button.handling_events(event) :
+            elif window == "tutorial4":
+                if back_button.handling_events(event):
                     window = "tutorial3"
                           
             # handling events in credits window
-            else:
-                if window == "credits" :
-                    if return_button.handling_events(event) :
+            elif window == "credits":
+                    if return_button.handling_events(event):
                         window = "main_menu"
-            
+            # handling events in settings window
+            else:
+                if window == "settings":
+                    if return_button.handling_events(event):
+                        window = "main_menu"
         # draws
         screen.fill(fg_color)
         
-            # intro layout
-        if window == "intro" :
+        # intro layout
+        if window=="intro" :
+            pygame.mixer.music.stop()
             # text in SpaceObsessed.ttf source: https://en.m.fontke.com/font/28537714/
-            static_text("Press any key to start!", 40, WIDTH, HEIGHT, y=200, center=True, screen=screen, font="SpaceObsessed.ttf")                
-            
+            static_text("Press any key to start", 35, WIDTH, HEIGHT, y=250, center=True, screen=screen, font="SpaceObsessed.ttf")                
             # to rotate the image
-            angle += 1
-            peng_rotated, peng_rotated_rect = rotate_image(luck, angle)
+            angle += 0.5
+            peng_rotated, peng_rotated_rect = rotate_image(intro_peng, angle)
             screen.blit(peng_rotated, peng_rotated_rect)
 
         # main menu layout
-        elif window == 'main_menu':
+        elif window=='main_menu':
             # show image
             screen.blit(background_image15, (920, 0))
             # draw buttons
@@ -284,6 +303,7 @@ def main():
             highscore_button.draw(screen)
             tutorial_button.draw(screen)
             credits_button.draw(screen)
+            settings_button.draw(screen)
             quit_button.draw(screen)
             # text in Snow Blue.ttf source: https://www.1001fonts.com/snow-blue-font.html
             static_text("Pinguin", 120, WIDTH-1250, HEIGHT-750, font="SNOW BLUE.ttf", center=False, screen=screen)
@@ -293,7 +313,6 @@ def main():
             # show image
             screen.blit(background_image2, (WIDTH/1.5, 330))
             screen.blit(background_image4, (200, 480))
-
             # draw button
             return_button.draw(screen)
             # text
@@ -307,7 +326,7 @@ def main():
                 pass # if scoreboard is empty, do nothing
                 
         # tutorial layout   
-        elif window == 'tutorial':
+        elif window=='tutorial':
             # show images
             screen.blit(background_image3, (150,200)) # pengiun
             screen.blit(background_image8, (700,400)) # arrow
@@ -320,7 +339,7 @@ def main():
             static_text("Reach all 5 destinations to win!", 30, WIDTH, HEIGHT, y=-200, screen=screen, font= "SpaceObsessed.ttf",center=True)
             static_text("Tutorial", 80, WIDTH, HEIGHT, y=-350, font="SNOW BLUE.ttf", center=True, screen=screen)
                 
-        elif window == 'tutorial2':
+        elif window=='tutorial2':
             # show images
             screen.blit(background_image10, (610, 360)) # polar bear
             screen.blit(background_image11, (950, 450)) # floating ice
@@ -356,11 +375,10 @@ def main():
             static_text("plus an extra 5 pts for each second remaining", 25, WIDTH, HEIGHT, y=125, screen=screen, font="SpaceObsessed.ttf",center=True)               
             static_text("and 50 pts per life remaining", 25, WIDTH, HEIGHT, y=150, screen=screen, font="SpaceObsessed.ttf",center=True)
 
-        elif window == 'tutorial4':
+        elif window=='tutorial4':
             # show images
             screen.blit(pygame.transform.rotate(background_image, 90), (WIDTH-500, 225)) # penguin
             screen.blit(background_image6, (580, 200)) # wasd controls
-
             # draw button
             back_button.draw(screen)
             # text
@@ -368,8 +386,7 @@ def main():
             static_text("Use the following keys to move around", 30, WIDTH, HEIGHT, y=-200, screen=screen, font="SpaceObsessed.ttf", center=True)
         
         # credits layout
-        else: 
-            if window == "credits" :
+        elif window=="credits" :
                 # show image
                 screen.blit(background_image5, (850, 520))
                 # draw button
@@ -382,7 +399,29 @@ def main():
                 static_text("Po Wing Chu", 30, WIDTH, HEIGHT+0, y=0, font="SpaceObsessed.ttf", center=True, screen=screen)
                 static_text("Credits", 80, WIDTH, HEIGHT, y=-350, font="SNOW BLUE.ttf", center=True, screen=screen)
     
-            # update display
+        else:
+            if window=="settings":
+                # show image 
+
+                # draw button
+                return_button.draw(screen)
+                # text
+                static_text("Settings", 80, WIDTH, HEIGHT, y=-350, font="SNOW BLUE.ttf", center=True, screen=screen)
+
+
+        # handling idle time in main menu to return to intro screen
+        if (window=="main_menu") & (not already_open):
+            # get current time in miliseconds when window opened
+            menu_open_time = pygame.time.get_ticks()
+            already_open = True
+        # get current time
+        current_time = pygame.time.get_ticks()
+        # after idle time of 60 seconds return to intro screen
+        if already_open & (current_time - menu_open_time >= 60_000):
+            already_open = False
+            window = "intro"
+            music_playing = False
+        # update display
         pygame.display.flip()
         # Framerate
         clock.tick(framerate)
@@ -551,12 +590,10 @@ background_image7 = pygame.image.load(os.path.join(folder,"penguin2.png")).conve
 background_image13 = pygame.image.load(os.path.join(folder,'penguin_home.png')).convert_alpha()
 background_image13 = pygame.transform.smoothscale(background_image13, (int(1.35*LANE), LANE))
 
-# https://summerwatersports.com/abstract-winter-snow-background/ 
-snow = pygame.image.load(os.path.join(folder, 'Snow.jpg')).convert_alpha()
+snow = pygame.image.load(os.path.join(folder, 'snow.png')).convert_alpha()
 snow = pygame.transform.scale(snow, (WIDTH, 4*LANE))
 
-# https://planet-lean.com/efficient-product-design-seafloor/ 
-ocean = pygame.image.load(os.path.join(folder, 'Ocean.png')).convert_alpha()
+ocean = pygame.image.load(os.path.join(folder, 'ocean.png')).convert_alpha()
 ocean = pygame.transform.smoothscale(ocean, (WIDTH, 4*LANE))
 
 # set display caption
@@ -914,9 +951,6 @@ def main_gameplay():
     intro = True
 
     while PLAYING:
-        # set the framerate 
-        pygame.time.Clock().tick(framerate)
-
         # sets up the level based on the parameters contained in level_parameters
         if not level_set:
             SpawnObjects().initial_spawn((HEIGHT-(5*LANE)-1), 30, level_parameters[LEVEL]['x_bear_inc'], level_parameters[LEVEL]['bear_rows'], bear_group, Bears)
@@ -943,8 +977,8 @@ def main_gameplay():
 
         penguin.check_borders()
         
-        pygame.draw.rect(screen,pygame.Color("black"), pygame.Rect(0,HEIGHT-LANE,WIDTH,LANE))
-        pygame.draw.rect(screen,pygame.Color("black"), pygame.Rect(0,0,WIDTH,TOP_BORDER))
+       # pygame.draw.rect(screen,pygame.Color("white"), pygame.Rect(0,HEIGHT-LANE,WIDTH,LANE))
+        pygame.draw.rect(screen,pygame.Color("turquoise4"), pygame.Rect(0,0,WIDTH,TOP_BORDER))
         pygame.draw.rect(screen,pygame.Color("black"), pygame.Rect(0,TOP_BORDER,WIDTH,LANE))
         
         # safety before river
@@ -977,10 +1011,22 @@ def main_gameplay():
         draw_skulls()
         
         pygame.display.flip()
+        # set the framerate   
+        pygame.time.Clock().tick(framerate)
 
         # add LEVEL 1 text to start of the game
         if intro:
+            # top left
+            static_text(f"Level {LEVEL+1}", 240, WIDTH, HEIGHT, x=10, y=-10, color="white",screen=screen, font="SpaceObsessed.ttf", center=True)
+            # top right
+            static_text(f"Level {LEVEL+1}", 240, WIDTH, HEIGHT, x=-10, y=-10, color="white",screen=screen, font="SpaceObsessed.ttf", center=True)
+            # bottom left 
+            static_text(f"Level {LEVEL+1}", 240, WIDTH, HEIGHT, x=-10, y=10, color="white",screen=screen, font="SpaceObsessed.ttf", center=True)
+            # bottom right
+            static_text(f"Level {LEVEL+1}", 240, WIDTH, HEIGHT, x=-10 , y=-10, color="white",screen=screen, font="SpaceObsessed.ttf", center=True)
+            # actual text
             static_text(f"Level {LEVEL+1}", 240, WIDTH, HEIGHT, color="black",screen=screen, font="SpaceObsessed.ttf", center=True)
+
             next_level.set_volume(0.1)
             next_level.play()
             pygame.display.flip()
@@ -997,7 +1043,16 @@ def main_gameplay():
             LEVEL += 1
             # display next level screen for 2 seconds
             if LEVEL < 3:
-                static_text(f"Level {LEVEL+1}", 240, WIDTH, HEIGHT, color="black",screen=screen, font="SpaceObsessed.ttf", center=True)
+                # top left
+                static_text(f"Level {LEVEL+1}", 240, WIDTH, HEIGHT, x=10, y=-10, color="white", screen=screen, font="SpaceObsessed.ttf", center=True)
+                # top right
+                static_text(f"Level {LEVEL+1}", 240, WIDTH, HEIGHT, x=-10, y=-10, color="white", screen=screen, font="SpaceObsessed.ttf", center=True)
+                # bottom left 
+                static_text(f"Level {LEVEL+1}", 240, WIDTH, HEIGHT, x=-10, y=10, color="white", screen=screen, font="SpaceObsessed.ttf", center=True)
+                # bottom right
+                static_text(f"Level {LEVEL+1}", 240, WIDTH, HEIGHT, x=-10 , y=-10, color="white", screen=screen, font="SpaceObsessed.ttf", center=True)
+                # actual text               
+                static_text(f"Level {LEVEL+1}", 240, WIDTH, HEIGHT, color="black", screen=screen, font="SpaceObsessed.ttf", center=True)
                 next_level.set_volume(0.1)
                 next_level.play()
                 pygame.display.flip()

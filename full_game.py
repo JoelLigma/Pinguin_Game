@@ -6,7 +6,7 @@ Created on Sat Nov 23 13:53:35 2020
 """
  
 # import modules
-import pygame, pickle, os, sys, random
+import pygame, pickle, os, sys, random, time
 import pygame.freetype
 from pygame import mixer
 folder = 'Images and sounds' 
@@ -35,10 +35,10 @@ background_image2 = pygame.image.load(os.path.join(folder,'peng_scoreboard.png')
 background_image2 = pygame.transform.smoothscale(background_image2, (600,600))
 
 background_image3 = pygame.image.load(os.path.join(folder,"peng_Q.png")).convert_alpha()
-background_image3 = pygame.transform.smoothscale(background_image3, (550,550))
+background_image3 = pygame.transform.smoothscale(background_image3, (350,350))
 
 background_image4 = pygame.image.load(os.path.join(folder,"peng_right.png")).convert_alpha()
-background_image4 = pygame.transform.smoothscale(background_image4, (400,400))
+background_image4 = pygame.transform.smoothscale(background_image4, (350,350))
 
 background_image5 = pygame.image.load(os.path.join(folder,"peng_thankyou.png"))
 background_image5 = pygame.transform.smoothscale(background_image5, (225,225))
@@ -69,13 +69,8 @@ background_image14 = pygame.transform.smoothscale(background_image14, (160,160))
 background_image15 = pygame.image.load(os.path.join(folder,'peng_luck.png')).convert_alpha()
 background_image15 = pygame.transform.smoothscale(background_image15, (1400,1400))
 
-intro_peng = pygame.image.load(os.path.join(folder,'intro_peng.png')).convert_alpha()
+intro_peng = pygame.image.load(os.path.join(folder,'intro_screen_peng.png')).convert_alpha()
 intro_peng = pygame.transform.smoothscale(intro_peng, (300,300))
-
-glacier = pygame.image.load(os.path.join(folder, "glacier.png")).convert_alpha()
-glacier = pygame.transform.smoothscale(glacier, (WIDTH, LANE))
-
-
 
 # load sound and music
 # https://freesound.org/people/complex_waveform/sounds/213148/
@@ -116,7 +111,7 @@ class Menu_button() :
         else:
             surface.blit(self.images[0], self.rects[0])
      
-    def handling_events(self, event):
+    def handling_events(self, event, button_type=None):
         """
         Interaction with buttons.
         """
@@ -128,6 +123,9 @@ class Menu_button() :
             if self.hovered:
                 # play sound when click registered
                 click_sound.play()
+                # to return to the original button image
+                if button_type != "continuing_button":
+                    self.hovered = False
                 return True
             
 def get_colour(x):
@@ -166,6 +164,16 @@ def rotate_image(surface, angle):
     
     return rotated_surface, rotated_rect
 
+def load_unlock():
+    try:
+        # try to load the file and load highscores into variable scoreboard
+        file = open("unlock.sb","rb") # read binary
+        unlocked = pickle.load(file)
+        file.close()
+    except FileNotFoundError:
+        unlocked = False
+    return unlocked
+
 def main():
     """
     Run this function to start the menu screen.
@@ -182,17 +190,24 @@ def main():
     return_button = Menu_button("Return to Main Menu", WIDTH, HEIGHT, bg_color, fg_color, 30,200)
     next_button = Menu_button("Next", WIDTH, HEIGHT, bg_color, fg_color, 30, x=450)
     back_button = Menu_button("Back", WIDTH, HEIGHT, bg_color, fg_color, 30, x=-450, y=-5) 
+   
+    arrow_button = Menu_button("Next", WIDTH, HEIGHT, "yellow", fg_color, 30, x=185, y=-255.5) 
+    arrow2_button = Menu_button("Next", WIDTH, HEIGHT, "yellow", fg_color, 30, x=185, y=-200.5) 
 
-    # initialize variable window to switch between windows
+    # initialize important variables
     music_playing = False
     window = 'intro'    
     active = True
     angle = 0
     already_open = False
     menu_open_time = 0
-
+    menu_music = True
+    override = False
     # load scoreboard if file exists
     scoreboard = load_highscores()
+    # check if player previously unlocked the cosmetic override
+    unlocked = load_unlock()
+
     # main main_menu loop
     while active:
         for event in pygame.event.get():
@@ -205,6 +220,12 @@ def main():
                         window = "main_menu"
                     else: 
                         active = False
+                else:
+                    keys = pygame.key.get_pressed()
+                    if keys[pygame.K_u] & keys[pygame.K_n]:
+                        unlock()
+                        unlocked = True
+
             # end game by closing the window
             elif event.type == pygame.QUIT:
                     active = False
@@ -225,6 +246,7 @@ def main():
                         scoreboard = active
                         active = True
                     music_playing = False
+
                 elif highscore_button.handling_events(event):
                     window = 'highscores'
                     already_open = False
@@ -237,7 +259,7 @@ def main():
                 elif settings_button.handling_events(event):
                     window = 'settings'
                     already_open = False
-                else :
+                else:
                     if quit_button.handling_events(event):
                         active = False
                     
@@ -281,12 +303,21 @@ def main():
                 if window == "settings":
                     if return_button.handling_events(event):
                         window = "main_menu"
+                    elif arrow_button.handling_events(event): # needs to change to arrow button
+                        menu_music = not menu_music
+                        if menu_music:
+                            mixer.music.play(-1)
+                        else:
+                            pygame.mixer.music.stop()
+                    elif arrow2_button.handling_events(event):
+                        override = not override
+
         # draws
         screen.fill(fg_color)
         
         # intro layout
         if window=="intro" :
-            pygame.mixer.music.stop()
+            pygame.mixer.music.fadeout(3_000)
             # text in SpaceObsessed.ttf source: https://en.m.fontke.com/font/28537714/
             static_text("Press any key to start", 35, WIDTH, HEIGHT, y=250, center=True, screen=screen, font="SpaceObsessed.ttf")                
             # to rotate the image
@@ -311,8 +342,8 @@ def main():
         # highscores layout
         elif window == 'highscores':
             # show image
-            screen.blit(background_image2, (WIDTH/1.5, 330))
-            screen.blit(background_image4, (200, 480))
+            screen.blit(background_image2, (WIDTH/1.5, 330)) # group of penguins
+            screen.blit(background_image4, (200, 550)) # solo penguin
             # draw button
             return_button.draw(screen)
             # text
@@ -328,7 +359,7 @@ def main():
         # tutorial layout   
         elif window=='tutorial':
             # show images
-            screen.blit(background_image3, (150,200)) # pengiun
+            screen.blit(background_image3, (200,350)) # pengiun
             screen.blit(background_image8, (700,400)) # arrow
             screen.blit(background_image9, (1075,335)) # homes - might need change
             # draw button
@@ -401,12 +432,27 @@ def main():
     
         else:
             if window=="settings":
-                # show image 
+                # show image - penguin with safe hat and tool
 
                 # draw button
                 return_button.draw(screen)
+                arrow_button.draw(screen)
+                arrow2_button.draw(screen)
+
                 # text
                 static_text("Settings", 80, WIDTH, HEIGHT, y=-350, font="SNOW BLUE.ttf", center=True, screen=screen)
+                # if user clicks on "on":
+                if menu_music:
+                    static_text("Menu music          on", 30, WIDTH, HEIGHT, y=-200, font="SpaceObsessed.ttf", center=True, screen=screen)
+                else:
+                    static_text("Menu music         off", 30, WIDTH, HEIGHT, y=-200, font="SpaceObsessed.ttf", center=True, screen=screen)
+                if not unlocked:
+                    static_text("Polar Bear Override         off", 30, WIDTH, HEIGHT, y=-150, color="gray", font="SpaceObsessed.ttf", center=True, screen=screen)
+                else:
+                    if unlocked & (not override):
+                        static_text("Polar Bear Override         off", 30, WIDTH, HEIGHT, y=-150, font="SpaceObsessed.ttf", center=True, screen=screen)
+                    else:
+                        static_text("Polar Bear Override         on", 30, WIDTH, HEIGHT, y=-150, font="SpaceObsessed.ttf", center=True, screen=screen)
 
 
         # handling idle time in main menu to return to intro screen
@@ -435,17 +481,17 @@ def returnSecond(i):
     return i[1]
 
 # the inspiration for the followng 2 functions came from Thorsten's guess.py file (lecture 21)
-def save_highscores(name, score=0) :
+def save_highscores(name, score=0):
     """
     This function saves the top 5 player scores.
     """
-    try :
+    try:
         # try to load the file
         file = open("highscores.sb","rb") # read binary
         scoreboard = pickle.load(file)
         file.close()
         # if it is not there we initialize the scoreboard
-    except FileNotFoundError :
+    except FileNotFoundError:
         scoreboard = [] 
 
     if score > 0 :
@@ -583,8 +629,8 @@ game_over = pygame.mixer.Sound(os.path.join(folder,'game_over2.wav'))
 # https://freesound.org/people/MattLeschuck/sounds/511484/
 success = pygame.mixer.Sound(os.path.join(folder,'success-bell.wav'))
 
-# https://www.google.com/imgres?imgurl=https%3A%2F%2Fi.pinimg.com%2Foriginals%2F54%2F87%2F2b%2F54872b269f69e713209795c6c2884ae5.png&imgrefurl=https%3A%2F%2Fwww.pinterest.com%2Fwijanya6112%2Fpanguin%2F&tbnid=z2NHMp9Z1IbCjM&vet=12ahUKEwjZlq2i2cPtAhUM-BoKHbFnCSAQMyglegUIARCAAg..i&docid=d7ptc2zWDvZ56M&w=259&h=224&itg=1&q=line%20penguin&hl=en&ved=2ahUKEwjZlq2i2cPtAhUM-BoKHbFnCSAQMyglegUIARCAAg
-background_image7 = pygame.image.load(os.path.join(folder,"penguin2.png")).convert_alpha() # game over screen
+background_image7 = pygame.image.load(os.path.join(folder,"game_over_peng_new.png")).convert_alpha() # game over screen
+background_image7 = pygame.transform.smoothscale(background_image7, (300,300))
 
 # https://stthomascrookes.org/stc-online-prayer-2/turquoise-square/ turquoise square
 background_image13 = pygame.image.load(os.path.join(folder,'penguin_home.png')).convert_alpha()
@@ -595,6 +641,9 @@ snow = pygame.transform.scale(snow, (WIDTH, 4*LANE))
 
 ocean = pygame.image.load(os.path.join(folder, 'ocean.png')).convert_alpha()
 ocean = pygame.transform.smoothscale(ocean, (WIDTH, 4*LANE))
+
+head = pygame.image.load(os.path.join(folder, 'peng_head_white.png')).convert_alpha()
+head = pygame.transform.smoothscale(head, (90, 90))
 
 # set display caption
 #pygame.display.set_caption('Pinguin Game')
@@ -750,7 +799,7 @@ which is used in the draw_skulls() function to only display the skull for a few 
 class Skull():
     def __init__(self, x_pos, y_pos):
         self.image = pygame.image.load(os.path.join(folder, 'penguin_skull.png')).convert_alpha()
-        self.image = pygame.transform.smoothscale(self.image, (80,80))#(int(0.6*LANE),int(0.6*LANE)))
+        self.image = pygame.transform.smoothscale(self.image, (80,80))
         self.rect = self.image.get_rect()
         self.rect.x = x_pos
         self.rect.y = y_pos
@@ -789,7 +838,7 @@ SpawnObjects class contains 3 methods that are used for both the Bears and Float
 """
 class SpawnObjects:
     # method to add objects of the inputted class type to their sprite group
-    def move(self,y_start, x_start, x_inc, row_number, group_set, class_type):
+    def move(self, y_start, x_start, x_inc, row_number, group_set, class_type):
         for _ in range(row_number):
             group_set.add(class_type(x_start, y_start))
             x_start += x_inc
@@ -845,7 +894,7 @@ class SpawnObjects:
 class Bears(pygame.sprite.Sprite, SpawnObjects): 
     def __init__(self, x_in, y_in):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load(os.path.join(folder,'bear.png'))
+        self.image = pygame.image.load(os.path.join(folder,'bear.png')).convert_alpha()
         self.image = pygame.transform.smoothscale(self.image, (int(1.3*LANE), LANE-2))
         self.rect = self.image.get_rect()
         self.mask = pygame.mask.from_surface(self.image)
@@ -869,7 +918,7 @@ class Floating(pygame.sprite.Sprite, SpawnObjects):
 
     def __init__(self, x_in, y_in):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load(os.path.join(folder,'floating_ice_1920x1080.png'))
+        self.image = pygame.image.load(os.path.join(folder,'floating_ice_1920x1080.png')).convert_alpha()
         self.image = pygame.transform.smoothscale(self.image, (int(2*LANE), LANE-20))
         self.rect = self.image.get_rect()
         self.mask = pygame.mask.from_surface(self.image)
@@ -977,10 +1026,9 @@ def main_gameplay():
 
         penguin.check_borders()
         
-       # pygame.draw.rect(screen,pygame.Color("white"), pygame.Rect(0,HEIGHT-LANE,WIDTH,LANE))
-        pygame.draw.rect(screen,pygame.Color("turquoise4"), pygame.Rect(0,0,WIDTH,TOP_BORDER))
+        pygame.draw.rect(screen,pygame.Color("black"), pygame.Rect(0,0,WIDTH,TOP_BORDER))
         pygame.draw.rect(screen,pygame.Color("black"), pygame.Rect(0,TOP_BORDER,WIDTH,LANE))
-        
+
         # safety before river
         pygame.draw.rect(screen, pygame.Color("turquoise"), pygame.Rect(0,HEIGHT-LANE*7,WIDTH,LANE))
         # starting point safety
@@ -993,9 +1041,12 @@ def main_gameplay():
         screen.blit(snow, (0, HEIGHT - LANE * 6))
         # text in game SpaceObsessed.ttf source: https://en.m.fontke.com/font/28537714/
         static_text(f"Time: {str(seconds)}", 25, WIDTH - 200, HEIGHT - LANE/1.5,screen=screen, font="SpaceObsessed.ttf")
-        static_text(f"Lives: {str(LIVES)}", 25, WIDTH - 200, 10,screen=screen, font="SpaceObsessed.ttf")
+        #static_text(f"Lives: {str(LIVES)}", 25, WIDTH - 200, 10,screen=screen, font="SpaceObsessed.ttf")
         static_text(f"Score: {str(SCORE)}", 25, 60, 10,screen=screen, font="SpaceObsessed.ttf")
-        static_text(f"Level {LEVEL+1}", 25, 60, HEIGHT- LANE/1.5,screen=screen, font="SpaceObsessed.ttf")
+        static_text(f"Level: {LEVEL+1}", 25, 60, HEIGHT- LANE/1.5,screen=screen, font="SpaceObsessed.ttf")
+        # penguin head 
+        for i in range(LIVES):
+            screen.blit(head, (WIDTH - 250 + 70 * i, -10))
 
         # call the update methods and draw to screen for all sprites
         bear_group.update()
@@ -1016,14 +1067,19 @@ def main_gameplay():
 
         # add LEVEL 1 text to start of the game
         if intro:
+            # source: https://stackoverflow.com/questions/6339057/draw-a-transparent-rectangles-and-polygons-in-pygame
+            s = pygame.Surface((WIDTH, 240))  # the size of your rect
+            s.set_alpha(200)                
+            s.fill("white")           
+            screen.blit(s, (0,400))    
             # top left
-            static_text(f"Level {LEVEL+1}", 240, WIDTH, HEIGHT, x=10, y=-10, color="white",screen=screen, font="SpaceObsessed.ttf", center=True)
+            static_text(f"Level {LEVEL+1}", 240, WIDTH, HEIGHT, x=5, y=-5, color="white",screen=screen, font="SpaceObsessed.ttf", center=True)
             # top right
-            static_text(f"Level {LEVEL+1}", 240, WIDTH, HEIGHT, x=-10, y=-10, color="white",screen=screen, font="SpaceObsessed.ttf", center=True)
+            static_text(f"Level {LEVEL+1}", 240, WIDTH, HEIGHT, x=-5, y=-5, color="white",screen=screen, font="SpaceObsessed.ttf", center=True)
             # bottom left 
-            static_text(f"Level {LEVEL+1}", 240, WIDTH, HEIGHT, x=-10, y=10, color="white",screen=screen, font="SpaceObsessed.ttf", center=True)
+            static_text(f"Level {LEVEL+1}", 240, WIDTH, HEIGHT, x=-5, y=5, color="white",screen=screen, font="SpaceObsessed.ttf", center=True)
             # bottom right
-            static_text(f"Level {LEVEL+1}", 240, WIDTH, HEIGHT, x=-10 , y=-10, color="white",screen=screen, font="SpaceObsessed.ttf", center=True)
+            static_text(f"Level {LEVEL+1}", 240, WIDTH, HEIGHT, x=-5 , y=-5, color="white",screen=screen, font="SpaceObsessed.ttf", center=True)
             # actual text
             static_text(f"Level {LEVEL+1}", 240, WIDTH, HEIGHT, color="black",screen=screen, font="SpaceObsessed.ttf", center=True)
 
@@ -1043,14 +1099,19 @@ def main_gameplay():
             LEVEL += 1
             # display next level screen for 2 seconds
             if LEVEL < 3:
+                # source: https://stackoverflow.com/questions/6339057/draw-a-transparent-rectangles-and-polygons-in-pygame
+                s = pygame.Surface((WIDTH, 240))  # the size of your rect
+                s.set_alpha(200)                
+                s.fill("white")           
+                screen.blit(s, (0,400))    
                 # top left
-                static_text(f"Level {LEVEL+1}", 240, WIDTH, HEIGHT, x=10, y=-10, color="white", screen=screen, font="SpaceObsessed.ttf", center=True)
+                static_text(f"Level {LEVEL+1}", 240, WIDTH, HEIGHT, x=5, y=-5, color="white", screen=screen, font="SpaceObsessed.ttf", center=True)
                 # top right
-                static_text(f"Level {LEVEL+1}", 240, WIDTH, HEIGHT, x=-10, y=-10, color="white", screen=screen, font="SpaceObsessed.ttf", center=True)
+                static_text(f"Level {LEVEL+1}", 240, WIDTH, HEIGHT, x=-5, y=-5, color="white", screen=screen, font="SpaceObsessed.ttf", center=True)
                 # bottom left 
-                static_text(f"Level {LEVEL+1}", 240, WIDTH, HEIGHT, x=-10, y=10, color="white", screen=screen, font="SpaceObsessed.ttf", center=True)
+                static_text(f"Level {LEVEL+1}", 240, WIDTH, HEIGHT, x=-5, y=5, color="white", screen=screen, font="SpaceObsessed.ttf", center=True)
                 # bottom right
-                static_text(f"Level {LEVEL+1}", 240, WIDTH, HEIGHT, x=-10 , y=-10, color="white", screen=screen, font="SpaceObsessed.ttf", center=True)
+                static_text(f"Level {LEVEL+1}", 240, WIDTH, HEIGHT, x=-5 , y=-5, color="white", screen=screen, font="SpaceObsessed.ttf", center=True)
                 # actual text               
                 static_text(f"Level {LEVEL+1}", 240, WIDTH, HEIGHT, color="black", screen=screen, font="SpaceObsessed.ttf", center=True)
                 next_level.set_volume(0.1)
@@ -1069,13 +1130,16 @@ def main_gameplay():
             level_set = False 
         if seconds <= 0: 
             PLAYING = False
-           
+    
     # game over screen to ask player for their name
     find_input()
     # if score > 0 save score
     if SCORE > 0 :
-        save_highscores(name,SCORE)
-        
+        save_highscores(name, SCORE)
+    # if player beats the game, they unlock the polar bear cosmetic override
+    if LEVEL == 3:
+        unlock()
+
     scoreboard = load_highscores()
     # reset variables for next round
     reset_variables()
@@ -1096,7 +1160,6 @@ def find_input():
     game_over.play()
     enter_pressed = False
     while not enter_pressed:
-        pygame.display.flip()
         for e in pygame.event.get():
             if e.type == pygame.QUIT:
                 enter_pressed = True
@@ -1115,16 +1178,45 @@ def find_input():
         static_text("Game Over", 120, WIDTH, HEIGHT, y=-200,screen=screen, font="SpaceObsessed.ttf", center=True)
         static_text(f"You scored {SCORE} points!", 30, WIDTH, HEIGHT,y=-50 ,screen=screen, font="SpaceObsessed.ttf",center=True)
         static_text("Please enter your name to save your score!",20, WIDTH,HEIGHT,screen=screen,font="SpaceObsessed.ttf",center=True)
-        static_text("Name: ",20,WIDTH, HEIGHT, x=-50, y=50,screen=screen,font="SpaceObsessed.ttf",center=True) 
-        static_text(f"{name}",20, WIDTH/2-15, HEIGHT/2+43, screen=screen, font="SpaceObsessed.ttf", color='yellow', center=False)        
-        background7_rec = background_image7.get_rect()
-        background7_rec.center = (WIDTH), (HEIGHT+200)
-        screen.blit(background_image7, background7_rec)
-        
+        static_text("Name: ", 20,WIDTH, HEIGHT, x=-50, y=50,screen=screen,font="SpaceObsessed.ttf",center=True) 
+        static_text(f"{name}", 20, WIDTH/2-15, HEIGHT/2+43, screen=screen, font="SpaceObsessed.ttf", color='yellow', center=False)        
+        screen.blit(background_image7, (WIDTH//2-150, 600))
+
         pygame.display.flip()
         
     return name
                 
+def unlock():
+    """
+    If the player completes all 3 levels, they unlock the polar bear cosmetic override.
+    """
+    enter_pressed = False
+    success.set_volume(0.5)
+    success.play()
+    while not enter_pressed:
+        for e in pygame.event.get():
+            if e.type == pygame.QUIT:
+                enter_pressed = True
+            if e.type == pygame.KEYDOWN:
+                if e.key == pygame.K_RETURN:
+                    enter_pressed = True   # confirm name
+                    success.set_volume(0.5)
+                    success.play()
+
+        screen.fill(pygame.Color(fg_color))
+        static_text("Congratulations", 120, WIDTH, HEIGHT, y=-200, color="yellow", screen=screen, font="SpaceObsessed.ttf", center=True)
+        static_text("You unlocked the polar bear cosmetic override!", 30, WIDTH, HEIGHT,y=-50 ,screen=screen, font="SpaceObsessed.ttf",center=True)
+        screen.blit(background_image10, (WIDTH//2-145, 550))
+
+        pygame.display.flip()
+    # save that the player unlocked the override
+    unlocked = True
+    file = open("unlock.sb","wb") # write binary
+    pickle.dump(unlocked,file)
+    file.close()    
+
+    return 
+
 def reset_variables():
     global TIME, SCORE, LIVES, PLAYING, DEAD, COUNTER, skull_images, name, LEVEL
     LEVEL = 0 
@@ -1141,7 +1233,7 @@ def reset_variables():
     name = ""
     
 
-# ---------------------------------------------------------------------------#
+# --------------------------------------------------------------------------- #
 # run game
 main()
 mixer.quit()  

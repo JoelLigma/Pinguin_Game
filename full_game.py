@@ -166,7 +166,7 @@ def rotate_image(surface, angle):
 
 def load_unlock():
     try:
-        # try to load the file and load highscores into variable scoreboard
+        # try to load the file 
         file = open("unlock.sb","rb") # read binary
         unlocked = pickle.load(file)
         file.close()
@@ -998,7 +998,8 @@ def main_gameplay():
     wind.set_volume(0.025) # used to be 0.3 but is too loud
     wind.play(-1) # play background sound for atmosphere
     intro = True
-
+    unlocked = load_unlock()
+    
     while PLAYING:
         # sets up the level based on the parameters contained in level_parameters
         if not level_set:
@@ -1049,10 +1050,15 @@ def main_gameplay():
             screen.blit(head, (WIDTH - 250 + 70 * i, -10))
 
         # call the update methods and draw to screen for all sprites
-        bear_group.update()
+        if unlocked:
+            # to add the cosmetic override here in the future
+            pass
+        else:
+            bear_group.update()
+            bear_group.draw(screen)
+
         float_group.draw(screen)
         float_group.update()
-        bear_group.draw(screen)
         penguin_group.update()  
         fish_group.update()
         home_group.draw(screen)
